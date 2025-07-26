@@ -1,0 +1,19 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "wancraft", "wancraft.csproj", "{CE219504-95A2-4743-9D93-C7448272D6CE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{CE219504-95A2-4743-9D93-C7448272D6CE}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+	EndGlobalSection
+EndGlobal
