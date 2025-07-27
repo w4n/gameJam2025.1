@@ -1,7 +1,9 @@
 using Godot;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using wancraft;
 
 public partial class Main : Node
@@ -12,6 +14,8 @@ public partial class Main : Node
     [Export] private int _chunkSize = 16;
     [Export] private int _worldHeight = 128;
     
+    [Export] public CharacterBody3D Player { get; set; }
+    
     [Export] private TextEdit _textX;
     [Export] private TextEdit _textY;
     [Export] private TextEdit _textZ;
@@ -19,21 +23,67 @@ public partial class Main : Node
     [Export] private Material _blockMaterial;
 
     private int _minHeight = 10;
-    private int _maxHeight = 20;
+    private int _maxHeight = 80;
     
-    private bool[,,] _blockMap;  
+    private bool[,,] _blockMap;
+
+    private Vector2 _playerPosition = Vector2.Zero;
+    
+    private ConcurrentQueue<MeshInstance3D> _completedChunks = new();
     
     public override void _Ready()
     {
+        
         //_noise.Seed = (int)GD.Randi() % 65536;
         //GenerateWorld();
         
+        var timestamp = DateTime.Now;
         GenerateBlockMap();
+        GD.Print($"Block generation took: {(DateTime.Now - timestamp).TotalMilliseconds} ms");
         //InitializeBlocks();
 
-        GenerateChunk(0, 0);
+        Task.Run(() => GenerateChunk(0, 0));
+        Task.Run(() => GenerateChunk(_chunkSize, 0));
+        Task.Run(() => GenerateChunk(_chunkSize * 2, 0));
+        Task.Run(() => GenerateChunk(0, _chunkSize));
+        Task.Run(() => GenerateChunk(0, _chunkSize * 2));
+        Task.Run(() => GenerateChunk(_chunkSize, _chunkSize));
+        Task.Run(() => GenerateChunk(_chunkSize * 2, _chunkSize * 2));
         
         //GenerateGeometry();
+    }
+
+    public override void _Process(double delta)
+    {
+        
+            
+        //_labelOutput.Text = Engine.GetFramesPerSecond().ToString("000");
+        
+        //_labelOutput.Text = $"Player position: {Player.Position.X:F}:{Player.Position.Z:F}";
+        
+        /*if ((int)Player.Position.X / _chunkSize != (int)_playerPosition.X || (int)Player.Position.Z / _chunkSize != (int)_playerPosition.Y)
+        {
+            _playerPosition.X = (int)((int)Player.Position.X / _chunkSize);
+            _playerPosition.Y = (int)((int)Player.Position.Z / _chunkSize);
+            _labelOutput.Text = $"Player position: {_playerPosition.X}:{_playerPosition.Y}";
+        }*/
+        
+        while (_completedChunks.TryDequeue(out var chunk))
+            AddChild(chunk);
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        _labelOutput.Text = $"Player position: {_playerPosition.X:F}:{_playerPosition.Y:F}";
+        
+        if ((int)Player.Position.X / _chunkSize != (int)_playerPosition.X || (int)Player.Position.Z / _chunkSize != (int)_playerPosition.Y)
+        {
+            _playerPosition.X = (int)((int)Player.Position.X / _chunkSize);
+            _playerPosition.Y = (int)((int)Player.Position.Z / _chunkSize);
+            _labelOutput.Text = $"Player position: {_playerPosition.X:F}:{_playerPosition.Y:F}";
+        }
+            
+        base._PhysicsProcess(delta);
     }
 
     private void GenerateChunk(int xOffset, int zOffset)
@@ -66,17 +116,27 @@ public partial class Main : Node
             }
         }
         
-        surface.GenerateNormals();
+        //surface.GenerateNormals();
         surface.GenerateTangents();
         
         var mesh = surface.Commit();
+
+        var shape = mesh.CreateTrimeshShape();
         
-        MeshInstance3D meshInstance = new MeshInstance3D();
+        var meshInstance = new MeshInstance3D();
 
         meshInstance.Mesh = mesh;
         meshInstance.MaterialOverride = _blockMaterial;
         
-        AddChild(meshInstance);
+        var staticBody = new StaticBody3D();
+        var collisionShape = new CollisionShape3D();
+        collisionShape.Shape = shape;
+        
+        staticBody.AddChild(collisionShape);
+        
+        meshInstance.AddChild(staticBody);
+        
+        _completedChunks.Enqueue(meshInstance);
     }
 
         
@@ -149,14 +209,14 @@ public partial class Main : Node
         if (!IsBlockAt(x, y, z + 1))
         {
             // Add front face
-            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Forward, uvs);
+            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, uvs);
         }
         
         // block behind?
         if (!IsBlockAt(x, y, z - 1))
         {
             // Add back face
-            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Back, uvs);
+            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, uvs);
         }
     }
     
@@ -238,8 +298,8 @@ public partial class Main : Node
             vertices[1], vertices[6], vertices[2],
         };*/
         
-        AddQuad(st, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Forward, uvs);
-        AddQuad(st, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Back, uvs);
+        AddQuad(st, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, uvs);
+        AddQuad(st, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, uvs);
         AddQuad(st, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, uvs);
         AddQuad(st, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, uvs);
         AddQuad(st, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, uvs);
@@ -259,8 +319,8 @@ public partial class Main : Node
             st.AddVertex(vertex);
         }*/
         
-        st.GenerateNormals();
-        st.GenerateTangents();
+        //st.GenerateNormals();
+        //st.GenerateTangents();
 
         var mesh = st.Commit();
         
@@ -347,8 +407,8 @@ public partial class Main : Node
         {
             for (int z = 0; z < _worldSize; z++)
             {
-                var noiseValue = _noise.GetNoise2D(x, z);
-                var blocksInStack = _maxHeight * noiseValue + _minHeight;
+                var noiseValue = _noise.GetNoise2D(x, z) * _maxHeight;
+                var blocksInStack = noiseValue + _minHeight;
                 
                 for (int y = 0; y < blocksInStack; y++)
                     _blockMap[x, y, z] = true;

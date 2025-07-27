@@ -1,20 +1,17 @@
-[gd_scene load_steps=12 format=3 uid="uid://cv6k7y7yr4vja"]
+[gd_scene load_steps=11 format=3 uid="uid://cv6k7y7yr4vja"]
 
 [ext_resource type="Script" uid="uid://bx50tdlvbsxk8" path="res://addons/freecam_3D/freecam.gd" id="1_2cn0r"]
-[ext_resource type="Script" uid="uid://85c43lcrc8c1" path="res://Main.cs" id="1_ewk14"]
-[ext_resource type="PackedScene" uid="uid://ds36uq5xilph8" path="res://block.tscn" id="2_agl30"]
+[ext_resource type="Script" uid="uid://85c43lcrc8c1" path="res://Main.cs" id="1_h2yge"]
+[ext_resource type="PackedScene" uid="uid://b0mvlrs7ovmjd" path="res://Player.tscn" id="2_1bvp3"]
 [ext_resource type="PackedScene" uid="uid://bs2jm62cmkbrk" path="res://addons/instant-realistic-light/light_scene.tscn" id="4_73b8f"]
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_n03im"]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_1bvp3"]
 noise_type = 3
-seed = 1095
-frequency = 0.0199
+seed = 432535
+frequency = 0.006
 
-[sub_resource type="MeshTexture" id="MeshTexture_1bvp3"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1bvp3"]
-albedo_color = Color(0, 0.662745, 0, 1)
-normal_texture = SubResource("MeshTexture_1bvp3")
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h2yge"]
+albedo_color = Color(0.17004, 0.660103, 0, 1)
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1bvp3"]
 ground_color = Color(0, 0, 0, 1)
@@ -51,43 +48,51 @@ dof_blur_far_distance = 1.44
 dof_blur_near_distance = 0.01
 auto_exposure_min_sensitivity = 8.01
 
-[node name="Main" type="Node3D" node_paths=PackedStringArray("_textX", "_textY", "_textZ", "_labelOutput")]
-script = ExtResource("1_ewk14")
-_block = ExtResource("2_agl30")
-_noise = SubResource("FastNoiseLite_n03im")
+[node name="Main" type="Node3D" node_paths=PackedStringArray("Player", "_textX", "_textY", "_textZ", "_labelOutput")]
+script = ExtResource("1_h2yge")
+_noise = SubResource("FastNoiseLite_1bvp3")
 _worldSize = 512
-_chunkSize = 512
-_textX = NodePath("Freecam3D/TextEdit")
-_textY = NodePath("Freecam3D/TextEdit2")
-_textZ = NodePath("Freecam3D/TextEdit3")
-_labelOutput = NodePath("Freecam3D/Label")
-_blockMaterial = SubResource("StandardMaterial3D_1bvp3")
+_chunkSize = 64
+Player = NodePath("Player")
+_textX = NodePath("TextEdit")
+_textY = NodePath("TextEdit2")
+_textZ = NodePath("TextEdit3")
+_labelOutput = NodePath("Label")
+_blockMaterial = SubResource("StandardMaterial3D_h2yge")
+
+[node name="Player" parent="." instance=ExtResource("2_1bvp3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50, 100, 50)
+JumpForce = 6.5
 
 [node name="Freecam3D" type="Camera3D" parent="."]
 script = ExtResource("1_2cn0r")
 
-[node name="TextEdit" type="TextEdit" parent="Freecam3D"]
+[node name="WorldEnvironment" parent="." instance=ExtResource("4_73b8f")]
+environment = SubResource("Environment_7mycd")
+camera_attributes = SubResource("CameraAttributesPractical_272bh")
+
+[node name="TextEdit" type="TextEdit" parent="."]
 offset_left = 44.0
 offset_top = 60.0
 offset_right = 102.0
 offset_bottom = 89.0
 placeholder_text = "X"
 
-[node name="TextEdit2" type="TextEdit" parent="Freecam3D"]
+[node name="TextEdit2" type="TextEdit" parent="."]
 offset_left = 115.0
 offset_top = 60.0
 offset_right = 173.0
 offset_bottom = 89.0
 placeholder_text = "Y"
 
-[node name="TextEdit3" type="TextEdit" parent="Freecam3D"]
+[node name="TextEdit3" type="TextEdit" parent="."]
 offset_left = 189.0
 offset_top = 60.0
 offset_right = 247.0
 offset_bottom = 89.0
 placeholder_text = "Z"
 
-[node name="Button" type="Button" parent="Freecam3D"]
+[node name="Button" type="Button" parent="."]
 offset_left = 271.0
 offset_top = 59.0
 offset_right = 324.0
@@ -95,13 +100,9 @@ offset_bottom = 90.0
 text = "check
 "
 
-[node name="Label" type="Label" parent="Freecam3D"]
+[node name="Label" type="Label" parent="."]
 offset_left = 47.0
 offset_top = 105.0
 offset_right = 385.0
 offset_bottom = 403.0
 text = "DBG"
-
-[node name="WorldEnvironment" parent="." instance=ExtResource("4_73b8f")]
-environment = SubResource("Environment_7mycd")
-camera_attributes = SubResource("CameraAttributesPractical_272bh")
