@@ -1,8 +1,13 @@
 using Godot;
 using System;
+using Wancraft;
+
+namespace Wancraft;
 
 public partial class Player : CharacterBody3D
 {
+    [Export] public int ChunkSize { get; set; } = 16;
+    
     [Export] public int Speed { get; set; } = 14;
     [Export] public int FallAcceleration { get; set; } = 75;
     [Export] public float JumpForce { get; set; } = 4.5f;
@@ -12,11 +17,32 @@ public partial class Player : CharacterBody3D
     
     [Export] public Marker3D HeadPivot { get; set; }
     [Export] public Camera3D Camera { get; set; }
+    [Export] public RayCast3D RayCast { get; set; }
+    
+    /// <summary>
+    ///     Is emitted when the player tries to mine a block.
+    /// </summary>
+    [Signal]
+    public delegate void MineBlockEventHandler(Vector3I blockCoordinates);
+    
+    /// <summary>
+    ///     Is emitted when the player tries to mine a block.
+    /// </summary>
+    [Signal]
+    public delegate void BlockPlacedEventHandler(Vector3I blockCoordinates);
+    
+    [Signal]
+    public delegate void PlayerEnteredNewChunkEventHandler(Vector2I chunkCoordinates);
+
+    private WorldInteractionController _interactionController;
     
     private bool _playerControllerDisabled;
+    private Vector2I _lastPlayerChunkPosition = Vector2I.Zero;
     
     public override void _Ready()
     {
+        _interactionController = new WorldInteractionController(this, RayCast, 1.0f);
+        
         Input.SetMouseMode(Input.MouseModeEnum.Captured);
     }
 
@@ -28,15 +54,22 @@ public partial class Player : CharacterBody3D
         {
             HeadPivot.RotateY(-mouseMotion.Relative.X * _sensitivity);
             Camera.RotateX(-mouseMotion.Relative.Y * _sensitivity);
-            
+            //RayCast.RotateX(-mouseMotion.Relative.Y * _sensitivity);
             
             Camera.Rotation = new Vector3(float.Clamp(Camera.Rotation.X, float.DegreesToRadians(-60), float.DegreesToRadians(60)), Camera.Rotation.Y, Camera.Rotation.Z);
+            //RayCast.Rotation = Camera.Rotation;
         }
     }
 
+    private bool _gravityDisabled;
+    
     public override void _PhysicsProcess(double delta)
     {
-        if (Input.IsActionJustPressed("Enter")) _playerControllerDisabled = false;
+        if (Input.IsActionJustPressed("Enter"))
+        {
+            _playerControllerDisabled = false;
+            Input.SetMouseMode(Input.MouseModeEnum.Captured);
+        }
         
         if (_playerControllerDisabled) return;
         
@@ -45,11 +78,18 @@ public partial class Player : CharacterBody3D
             _playerControllerDisabled = true;
             Input.SetMouseMode(Input.MouseModeEnum.Visible);
         }
+
+        if (Input.IsActionJustPressed("DisableGravity"))
+        {
+            _gravityDisabled = !_gravityDisabled;
+        }
+        
+        _interactionController.CheckForWorldInteraction();
         
         if (!IsOnFloor())
             _targetVelocity.Y -= 9.8f * (float)delta;
         
-        if (Input.IsActionJustPressed("Jump") && IsOnFloor())
+        if (Input.IsActionJustPressed("Jump") && (IsOnFloor() || _gravityDisabled))
             _targetVelocity.Y = JumpForce;
         
         var inputDirection = Input.GetVector("MoveLeft", "MoveRight", "MoveForward", "MoveBack" );
@@ -60,6 +100,21 @@ public partial class Player : CharacterBody3D
         
         Velocity = _targetVelocity;
         MoveAndSlide();
+        
+        CheckChunkPosition();
+    }
+    
+    
+    private void CheckChunkPosition()
+    {
+        if ((int)Position.X / ChunkSize != _lastPlayerChunkPosition.X ||
+            (int)Position.Z / ChunkSize != _lastPlayerChunkPosition.Y)
+        {
+            _lastPlayerChunkPosition.X = (int)Position.X / ChunkSize;
+            _lastPlayerChunkPosition.Y = (int)Position.Z / ChunkSize;
+            
+            EmitSignal(SignalName.PlayerEnteredNewChunk, _lastPlayerChunkPosition);
+        }
     }
 }
 
