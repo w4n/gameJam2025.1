@@ -1,0 +1,88 @@
+[gd_scene load_steps=13 format=3 uid="uid://cv6k7y7yr4vja"]
+
+[ext_resource type="PackedScene" uid="uid://b0mvlrs7ovmjd" path="res://Player.tscn" id="2_03owx"]
+[ext_resource type="Script" uid="uid://bx50tdlvbsxk8" path="res://addons/freecam_3D/freecam.gd" id="3_wkp8b"]
+[ext_resource type="PackedScene" uid="uid://bs2jm62cmkbrk" path="res://addons/instant-realistic-light/light_scene.tscn" id="4_20pc6"]
+[ext_resource type="Script" uid="uid://bff6wo0ugfd52" path="res://DebugInfo.cs" id="5_5vvyt"]
+[ext_resource type="PackedScene" uid="uid://de88cnm5ffu3b" path="res://WorldGenerator.tscn" id="6_c6i3y"]
+[ext_resource type="Script" uid="uid://b7016lur1vje5" path="res://ChunkManager.cs" id="7_c2ibq"]
+[ext_resource type="PackedScene" uid="uid://wvvck323spg8" path="res://Chunk.tscn" id="8_j4qnp"]
+
+[sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1bvp3"]
+ground_color = Color(0, 0, 0, 1)
+
+[sub_resource type="Sky" id="Sky_lquwl"]
+sky_material = SubResource("PhysicalSkyMaterial_1bvp3")
+radiance_size = 2
+
+[sub_resource type="Environment" id="Environment_7mycd"]
+background_mode = 2
+background_intensity = 100000.0
+sky = SubResource("Sky_lquwl")
+tonemap_mode = 3
+tonemap_white = 8.0
+ssao_enabled = true
+ssao_detail = 2.0
+sdfgi_enabled = true
+sdfgi_bounce_feedback = 0.9
+glow_enabled = true
+glow_normalized = true
+glow_bloom = 0.2
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.01
+volumetric_fog_gi_inject = 1.14
+volumetric_fog_anisotropy = 0.7
+volumetric_fog_sky_affect = 0.295
+adjustment_saturation = 1.17
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_272bh"]
+exposure_multiplier = 3.069
+auto_exposure_scale = 0.22
+auto_exposure_speed = 0.8
+dof_blur_far_distance = 1.44
+dof_blur_near_distance = 0.01
+auto_exposure_min_sensitivity = 8.01
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_272bh"]
+noise_type = 3
+seed = 84758927
+frequency = 0.0065
+fractal_octaves = 6
+
+[node name="Main" type="Node3D"]
+
+[node name="Player" parent="." instance=ExtResource("2_03owx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 100, 2)
+
+[node name="Freecam3D" type="Camera3D" parent="."]
+script = ExtResource("3_wkp8b")
+
+[node name="WorldEnvironment" parent="." instance=ExtResource("4_20pc6")]
+environment = SubResource("Environment_7mycd")
+camera_attributes = SubResource("CameraAttributesPractical_272bh")
+
+[node name="DebugInfo" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("5_5vvyt")
+
+[node name="LabelOutput" type="Label" parent="DebugInfo"]
+layout_mode = 0
+offset_right = 668.0
+offset_bottom = 341.0
+text = "DBG"
+
+[node name="WorldGenerator" parent="." instance=ExtResource("6_c6i3y")]
+TerrainNoise = SubResource("FastNoiseLite_272bh")
+
+[node name="ChunkManager" type="Node" parent="." node_paths=PackedStringArray("Player", "generator")]
+script = ExtResource("7_c2ibq")
+Player = NodePath("../Player")
+generator = NodePath("../WorldGenerator")
+GenerationRadius = 9
+ChunkScene = ExtResource("8_j4qnp")
+
+[connection signal="BlockPlaced" from="Player" to="ChunkManager" method="OnBlockPlaced"]
+[connection signal="MineBlock" from="Player" to="ChunkManager" method="OnBlockMined"]

@@ -1,0 +1,218 @@
+using System;
+using Godot;
+using Wancraft;
+
+public partial class Chunk : Node3D
+{
+    [Export] public int ChunkSize { get; set; } = 16;
+    [Export] public int TerrainHeight { get; set; } = 128;
+    
+    [Export] public WorldGenerator WorldGenerator { get; set; }
+    
+    [Export] private AnimationPlayer _player;
+    [Export] private CollisionShape3D _collisionShape;
+    [Export] private MeshInstance3D _meshInstance;
+    
+    private Vector2I _chunkCoordinates;
+    
+    public bool SuppressFirstSceneEntryAnimation { get; set; }
+    public bool Finalized { get; set; }
+    
+    public bool FlaggedForRemoval { get; set; }
+    public DateTime RemoveAfter { get; set; } = DateTime.MaxValue;
+    
+    private BlockType[,,] _blockMap;
+    private ArrayMesh _chunkMesh;
+
+    public override void _EnterTree()
+    {
+        if (SuppressFirstSceneEntryAnimation)
+        {
+            //_meshInstance.Transparency = 0f;
+            SuppressFirstSceneEntryAnimation = false;
+        }
+        else
+        {
+            _player.Play("fade_in");
+        }
+        
+        base._EnterTree();
+    }
+
+    public void RemoveBlock(Vector3I blockCoordinates)
+    {
+        _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = BlockType.Air;
+        
+        // Regenerate mesh and collision shape
+        GenerateChunk(_chunkCoordinates);
+        FinalizeChunk();
+    }
+
+    public void PlaceBlock(Vector3I blockCoordinates, BlockType blockType)
+    {
+        _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = blockType;
+        
+        // Regenerate mesh and collision shape
+        GenerateChunk(_chunkCoordinates);
+        FinalizeChunk();
+    }
+    
+    public void GenerateChunk(Vector2I coordinates)
+    {
+        var timestamp = DateTime.Now;
+        
+        if (_blockMap == null)
+            _blockMap = WorldGenerator.GenerateBlockMap(coordinates.X * ChunkSize, coordinates.Y * ChunkSize, ChunkSize);
+        
+        _chunkCoordinates  = coordinates;
+        //GD.Print($"{DateTime.Now} Block generation took {(DateTime.Now - timestamp).TotalMilliseconds:F} ms.");
+        
+        //timestamp = DateTime.Now;
+        var surface = new SurfaceTool();
+        surface.Begin(Mesh.PrimitiveType.Triangles);
+        
+        for (var x = 0; x < ChunkSize; x++)
+        for (var z = 0; z < ChunkSize; z++)
+        for (var y = 0; y < TerrainHeight; y++)
+        {
+            if (!IsBlockAt(x, y, z))
+                continue;
+
+            if (IsBlockVisible(x, y, z))
+                AddBlockToSurface(surface, x, y, z);
+        }
+
+        _chunkMesh = surface.Commit();
+        _meshInstance.Mesh = _chunkMesh;
+        
+        var generationTime = DateTime.Now - timestamp;
+    }
+
+    /// <summary>
+    ///     Finalizes the chunk by applying its collision mesh and marking it as finalized.
+    /// </summary>
+    /// <remarks>
+    ///     This method is NOT thread-safe, due to the use of Godot's <see cref="ArrayMesh.CreateTrimeshShape"/> API.
+    /// </remarks>
+    public void FinalizeChunk()
+    {
+        _collisionShape.Shape = _chunkMesh.CreateTrimeshShape();
+        Finalized = true;
+    }
+    
+    private bool IsBlockVisible(int x, int y, int z)
+    {
+        return !IsBlockAt(x, y - 1, z) || !IsBlockAt(x, y + 1, z) ||
+               !IsBlockAt(x - 1, y, z) || !IsBlockAt(x + 1, y, z) || 
+               !IsBlockAt(x, y, z - 1) || !IsBlockAt(x, y, z + 1);
+    }
+    
+    private bool IsBlockAt(int x, int y, int z)
+    {
+        if (x < 0 || x >= ChunkSize || 
+            y < 0 || y >= TerrainHeight || 
+            z < 0 || z >= ChunkSize)
+            return false;
+        
+        return _blockMap[x, y, z] != BlockType.Air;
+    }
+    
+    /*
+     *       4 +------------+ 5
+     *-       /|           /|
+     *-      / |          / |
+     *-     /  |         /  |
+     *   0 +---|--------+ 1 |
+     *     | 7 +--------|---+ 6
+     *     |  /         |  /
+     *     | /          | /      y z
+     *     |/           |/       |/
+     *   3 +------------+ 2    x-+
+     */
+    
+    private void AddBlockToSurface(SurfaceTool surface, int x, int y, int z)
+    {
+        var half = 0.5f * 1f;
+        
+        var vertices = new Vector3[]
+        {
+            new(-half + x,  half + y,  half + z),  // 0: Top-left-front
+            new( half + x,  half + y,  half + z),  // 1: Top-right-front
+            new( half + x, -half + y,  half + z),  // 2: Bottom-right-front
+            new(-half + x, -half + y,  half + z),  // 3: Bottom-left-front
+            new(-half + x,  half + y, -half + z),  // 4: Top-left-back
+            new( half + x,  half + y, -half + z),  // 5: Top-right-back
+            new( half + x, -half + y, -half + z),  // 6: Bottom-right-back
+            new(-half + x, -half + y, -half + z),  // 7: Bottom-left-back
+        };
+        
+        var uvs = new Vector2[]
+        {
+            new(0, 1), // Bottom-left
+            new(1, 1), // Bottom-right
+            new(1, 0), // Top-right
+            new(0, 0)  // Top-left
+        };
+        
+        // block above?
+        if (!IsBlockAt(x, y + 1, z))
+            // Add top face
+            AddQuad(surface, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, uvs);
+        
+        // block below?
+        if (!IsBlockAt(x, y - 1, z))
+            // Add bottom face
+            AddQuad(surface, vertices[3], vertices[2], vertices[6], vertices[7], Vector3.Down, uvs);
+        
+        // block left?
+        if (!IsBlockAt(x - 1, y, z))
+            // Add left face
+            AddQuad(surface, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, uvs);
+        
+        // block right?
+        if (!IsBlockAt(x + 1, y, z))
+            // Add left face
+            AddQuad(surface, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, uvs);
+        
+        // block in front?
+        if (!IsBlockAt(x, y, z + 1))
+            // Add front face
+            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, uvs);
+        
+        // block behind?
+        if (!IsBlockAt(x, y, z - 1))
+            // Add back face
+            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, uvs);
+    }
+    
+    private static void AddQuad(SurfaceTool surfaceTool, 
+        Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3,
+        Vector3 normal, Vector2[] uvs)
+    {
+        // First triangle: v0, v1, v2
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[0]);
+        surfaceTool.AddVertex(v0);
+        
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[1]);
+        surfaceTool.AddVertex(v1);
+        
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[2]);
+        surfaceTool.AddVertex(v2);
+        
+        // Second triangle: v0, v2, v3
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[0]);
+        surfaceTool.AddVertex(v0);
+        
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[2]);
+        surfaceTool.AddVertex(v2);
+        
+        surfaceTool.SetNormal(normal);
+        surfaceTool.SetUV(uvs[3]);
+        surfaceTool.AddVertex(v3);
+    }
+}
