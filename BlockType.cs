@@ -1,6 +1,6 @@
-namespace wancraft;
+namespace Wancraft;
 
-public enum BlockTypes
+public enum BlockType
 {
     Air,
     Grass,
