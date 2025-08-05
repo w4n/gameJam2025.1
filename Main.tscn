@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://cv6k7y7yr4vja"]
+[gd_scene load_steps=14 format=3 uid="uid://cv6k7y7yr4vja"]
 
 [ext_resource type="PackedScene" uid="uid://b0mvlrs7ovmjd" path="res://Player.tscn" id="2_03owx"]
 [ext_resource type="Script" uid="uid://bx50tdlvbsxk8" path="res://addons/freecam_3D/freecam.gd" id="3_wkp8b"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://de88cnm5ffu3b" path="res://WorldGenerator.tscn" id="6_c6i3y"]
 [ext_resource type="Script" uid="uid://b7016lur1vje5" path="res://ChunkManager.cs" id="7_c2ibq"]
 [ext_resource type="PackedScene" uid="uid://wvvck323spg8" path="res://Chunk.tscn" id="8_j4qnp"]
+[ext_resource type="Material" uid="uid://c7n68k8e83mah" path="res://test.tres" id="8_trn2v"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1bvp3"]
 ground_color = Color(0, 0, 0, 1)
@@ -74,6 +75,11 @@ offset_right = 668.0
 offset_bottom = 341.0
 text = "DBG"
 
+[node name="GridContainer" type="GridContainer" parent="DebugInfo"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
 [node name="WorldGenerator" parent="." instance=ExtResource("6_c6i3y")]
 TerrainNoise = SubResource("FastNoiseLite_272bh")
 
@@ -83,6 +89,7 @@ Player = NodePath("../Player")
 generator = NodePath("../WorldGenerator")
 GenerationRadius = 9
 ChunkScene = ExtResource("8_j4qnp")
+BlockMaterial = ExtResource("8_trn2v")
 
 [connection signal="BlockPlaced" from="Player" to="ChunkManager" method="OnBlockPlaced"]
 [connection signal="MineBlock" from="Player" to="ChunkManager" method="OnBlockMined"]

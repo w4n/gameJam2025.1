@@ -3,7 +3,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,19 +20,21 @@ public partial class ChunkManager : Node
     [Export] public int GenerationRadius = 5;
     [Export] public PackedScene ChunkScene;
     [Export] public int WorkerThreads = 4;
-    
+
     private readonly ConcurrentDictionary<Vector2I, Chunk> _loadedChunks = new();
     private readonly ConcurrentDictionary<Vector2I, Chunk> _cachedChunks = new();
-    
+
     private readonly ConcurrentQueue<Vector2I> _chunksToGenerate = new();
     private readonly ConcurrentQueue<Chunk> _chunksToFinalize = new();
     private readonly ConcurrentQueue<Chunk> _chunksToAddToScene = new();
     private readonly ConcurrentQueue<Chunk> _chunksToRemoveFromScene = new();
-    
+
     private readonly SemaphoreSlim _physicsGenerationSemaphore = new(1, 1);
     private readonly SemaphoreSlim _generationSemaphore = new(1, 1);
-    
+
     private PackedScene _chunkScene;
+
+    [Export] private StandardMaterial3D BlockMaterial { get; set; }
     
     public override void _Ready()
     {
@@ -244,6 +245,7 @@ public partial class ChunkManager : Node
 
         chunk.SuppressFirstSceneEntryAnimation = suppressSceneEntryAnimation;
         chunk.ChunkSize = ChunkSize;
+        chunk.Material = BlockMaterial;
         chunk.TerrainHeight = WorldHeight;
         chunk.WorldGenerator = generator;
         chunk.Position = new Vector3(chunkPosition.X * ChunkSize, 0, chunkPosition.Y * ChunkSize);

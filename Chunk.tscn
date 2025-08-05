@@ -1,9 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://wvvck323spg8"]
+[gd_scene load_steps=5 format=3 uid="uid://wvvck323spg8"]
 
 [ext_resource type="Script" uid="uid://dxh26rty704b4" path="res://Chunk.cs" id="1_lexys"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lexys"]
-albedo_color = Color(0.17004, 0.660103, 0, 1)
 
 [sub_resource type="Animation" id="Animation_s3wkh"]
 length = 0.001
@@ -51,7 +48,6 @@ _meshInstance = NodePath("StaticBody3D/MeshInstance3D")
 [node name="StaticBody3D" type="StaticBody3D" parent="."]
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
-material_override = SubResource("StandardMaterial3D_lexys")
 skeleton = NodePath("../..")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="StaticBody3D/MeshInstance3D"]

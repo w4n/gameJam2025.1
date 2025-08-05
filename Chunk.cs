@@ -13,19 +13,24 @@ public partial class Chunk : Node3D
     [Export] private CollisionShape3D _collisionShape;
     [Export] private MeshInstance3D _meshInstance;
     
-    private Vector2I _chunkCoordinates;
     
     public bool SuppressFirstSceneEntryAnimation { get; set; }
     public bool Finalized { get; set; }
+    public StandardMaterial3D Material { get; set; }
     
     public bool FlaggedForRemoval { get; set; }
     public DateTime RemoveAfter { get; set; } = DateTime.MaxValue;
     
     private BlockType[,,] _blockMap;
     private ArrayMesh _chunkMesh;
-
+    
+    private Vector2I _chunkCoordinates;
+    
+    private Vector2 _textureAtlasSize = new Vector2(2, 2);
+    
     public override void _EnterTree()
     {
+        
         if (SuppressFirstSceneEntryAnimation)
         {
             //_meshInstance.Transparency = 0f;
@@ -65,9 +70,7 @@ public partial class Chunk : Node3D
             _blockMap = WorldGenerator.GenerateBlockMap(coordinates.X * ChunkSize, coordinates.Y * ChunkSize, ChunkSize);
         
         _chunkCoordinates  = coordinates;
-        //GD.Print($"{DateTime.Now} Block generation took {(DateTime.Now - timestamp).TotalMilliseconds:F} ms.");
         
-        //timestamp = DateTime.Now;
         var surface = new SurfaceTool();
         surface.Begin(Mesh.PrimitiveType.Triangles);
         
@@ -82,6 +85,7 @@ public partial class Chunk : Node3D
                 AddBlockToSurface(surface, x, y, z);
         }
 
+        surface.SetMaterial(Material);
         _chunkMesh = surface.Commit();
         _meshInstance.Mesh = _chunkMesh;
         
@@ -145,50 +149,58 @@ public partial class Chunk : Node3D
             new( half + x, -half + y, -half + z),  // 6: Bottom-right-back
             new(-half + x, -half + y, -half + z),  // 7: Bottom-left-back
         };
+
         
-        var uvs = new Vector2[]
-        {
-            new(0, 1), // Bottom-left
-            new(1, 1), // Bottom-right
-            new(1, 0), // Top-right
-            new(0, 0)  // Top-left
-        };
         
         // block above?
         if (!IsBlockAt(x, y + 1, z))
             // Add top face
-            AddQuad(surface, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, uvs);
+            AddQuad(surface, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, new Vector2(0f, 0f));
         
         // block below?
         if (!IsBlockAt(x, y - 1, z))
             // Add bottom face
-            AddQuad(surface, vertices[3], vertices[2], vertices[6], vertices[7], Vector3.Down, uvs);
+            AddQuad(surface, vertices[3], vertices[2], vertices[6], vertices[7], Vector3.Down, new Vector2(0f, 1f));
         
         // block left?
         if (!IsBlockAt(x - 1, y, z))
             // Add left face
-            AddQuad(surface, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, uvs);
+            AddQuad(surface, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, new Vector2(1f, 0f));
         
         // block right?
         if (!IsBlockAt(x + 1, y, z))
             // Add left face
-            AddQuad(surface, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, uvs);
+            AddQuad(surface, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, new Vector2(1f, 0f));
         
         // block in front?
         if (!IsBlockAt(x, y, z + 1))
             // Add front face
-            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, uvs);
+            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, new Vector2(1f, 0f));
         
         // block behind?
         if (!IsBlockAt(x, y, z - 1))
             // Add back face
-            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, uvs);
+            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, new Vector2(1f, 0f));
+        
+        //surface.AddTriangleFan([vertices[0], vertices[1], vertices[2]], );
     }
     
-    private static void AddQuad(SurfaceTool surfaceTool, 
+    private void AddQuad(SurfaceTool surfaceTool, 
         Vector3 v0, Vector3 v1, Vector3 v2, Vector3 v3,
-        Vector3 normal, Vector2[] uvs)
+        Vector3 normal, Vector2 offset)
     {
+        var uvOffset = offset / _textureAtlasSize;
+        var uvHeight = 1.0f / _textureAtlasSize.Y;
+        var uvWidth = 1.0f / _textureAtlasSize.X;
+        
+        var uvs = new Vector2[]
+        {
+            new Vector2(0, 0) + uvOffset,               // Top-left
+            new Vector2(uvWidth, 0) + uvOffset,         // Top-right
+            new Vector2(uvWidth, uvHeight) + uvOffset,  // Bottom-right
+            new Vector2(0, uvHeight) + uvOffset,        // Bottom-left
+        };
+        
         // First triangle: v0, v1, v2
         surfaceTool.SetNormal(normal);
         surfaceTool.SetUV(uvs[0]);
