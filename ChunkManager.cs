@@ -3,8 +3,11 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Wancraft.SaveGames;
 
 namespace Wancraft;
 
@@ -30,19 +33,66 @@ public partial class ChunkManager : Node
     private readonly ConcurrentQueue<Chunk> _chunksToRemoveFromScene = new();
 
     private readonly SemaphoreSlim _physicsGenerationSemaphore = new(1, 1);
-    private readonly SemaphoreSlim _generationSemaphore = new(1, 1);
+    private readonly SemaphoreSlim _generationSemaphore = new(3, 3);
 
+    private CancellationTokenSource _physicsGenerationCancellationToken = new();
+    private Thread _physicsGenerationThread;
+    private bool _shouldStop = false;
+    
     private PackedScene _chunkScene;
 
     [Export] private StandardMaterial3D BlockMaterial { get; set; }
     
     public override void _Ready()
     {
+        GD.Print(OS.GetDataDir());
         _maxThreads = OS.GetProcessorCount();
+        GD.Print($"maxThreads: {_maxThreads}");
         _chunkScene = GD.Load<PackedScene>("res://Chunk.tscn");
+
+        _physicsGenerationThread = new Thread(PhysicsGenerationThreadLoop)
+        {
+            IsBackground = true
+        };
+        _physicsGenerationThread.Start();
         
         UpdateLoadedChunks(Vector2I.Zero, suppressSceneEntryAnimation: true);
     }
+
+    public override void _ExitTree()
+    {
+        _shouldStop = true;
+        _physicsGenerationCancellationToken.Cancel(false);
+        
+        if (_physicsGenerationSemaphore.CurrentCount > 0)
+            _physicsGenerationSemaphore.Release();
+        
+        _physicsGenerationThread.Join(500);
+        
+        _generationSemaphore.Dispose();
+        _physicsGenerationSemaphore.Dispose();
+    }
+    
+    private void PhysicsGenerationThreadLoop()
+    {
+        while (!_shouldStop)//!_physicsGenerationCancellationToken.IsCancellationRequested)
+        {
+            _physicsGenerationSemaphore.Wait();
+            //GD.Print("PhysicsGenerationThreadLoop");
+
+            if (_shouldStop) //_physicsGenerationCancellationToken.IsCancellationRequested)
+                break;
+            
+            while (_chunksToFinalize.TryDequeue(out var chunk))
+            {
+                chunk.FinalizeChunk();
+                _chunksToAddToScene.Enqueue(chunk);
+            }
+            
+            _physicsGenerationSemaphore.Release(); 
+        }
+    }
+
     public void LoadChunks()
     {
         using var saveFile = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Read);
@@ -207,11 +257,11 @@ public partial class ChunkManager : Node
         {
             RemoveChild(chunk);
             removedCount++;
-            GD.Print($"Removed chunk at position: {chunk.Position}");
+            //GD.Print($"Removed chunk at position: {chunk.Position}");
         }
 
-        if (addedCount > 0 || removedCount > 0)
-            GD.Print($"Added: {addedCount}, Removed: {removedCount}, Total children: {GetChildCount()}");
+        /*if (addedCount > 0 || removedCount > 0)
+            GD.Print($"Added: {addedCount}, Removed: {removedCount}, Total children: {GetChildCount()}");*/
         
         GetPlayerPosition();
     }
@@ -262,25 +312,44 @@ public partial class ChunkManager : Node
             
             _chunksToGenerate.Enqueue(chunkPosition);
         }
-        
-         if (_chunksToGenerate.Count > 0)
-              _ = Task.Run(async () => await GenerateChunks(suppressSceneEntryAnimation)); 
+
+        if (_chunksToGenerate.Count > 0)
+            _ = Task.Run(async () => await GenerateChunks(suppressSceneEntryAnimation)); 
 
     }
     
     private async Task GenerateChunks(bool suppressSceneEntryAnimation = false)
     {
+        
+        
         // Collect all chunks to generate into a list
         var tasks = new List<Task>();
     
-        // Collect all chunks to generate
+        /*// Collect all chunks to generate
         var chunksToProcess = new List<Vector2I>();
         while (_chunksToGenerate.TryDequeue(out var chunkPosition))
         {
             chunksToProcess.Add(chunkPosition);
-        }
+        }*/
 
-        foreach (var chunkCoordinates in chunksToProcess)
+        while (_chunksToGenerate.TryDequeue(out var chunkPosition))
+        {
+            var task = Task.Run(async () =>
+            {
+                await _generationSemaphore.WaitAsync();
+                try
+                {
+                    LoadChunk(chunkPosition, suppressSceneEntryAnimation);
+                }
+                finally
+                {
+                    _generationSemaphore.Release();
+                }
+            });
+            tasks.Add(task);
+        }
+        
+        /*foreach (var chunkCoordinates in chunksToProcess)
         {
             var task = Task.Run(async () =>
             {
@@ -295,7 +364,7 @@ public partial class ChunkManager : Node
                 }
             });
             tasks.Add(task);
-        }
+        }*/
         
         await Task.WhenAll(tasks);
         
@@ -333,11 +402,13 @@ public partial class ChunkManager : Node
         chunk.Position = new Vector3(chunkPosition.X * ChunkSize, 0, chunkPosition.Y * ChunkSize);
         chunk.GenerateChunk(chunkPosition);
         
-        // Todo: Maybe split this step into it's own physics generation thread
+        /*// Todo: Maybe split this step into it's own physics generation thread
         if (!chunk.Finalized)
             chunk.FinalizeChunk();
         
-        _chunksToAddToScene.Enqueue(chunk);
+        _chunksToAddToScene.Enqueue(chunk);*/
+        
+        _chunksToFinalize.Enqueue(chunk);
     }
 
     private HashSet<Vector2I> GetChunksInRangeRadius(Vector2I playerPosition)
