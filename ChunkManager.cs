@@ -43,6 +43,88 @@ public partial class ChunkManager : Node
         
         UpdateLoadedChunks(Vector2I.Zero, suppressSceneEntryAnimation: true);
     }
+    public void LoadChunks()
+    {
+        using var saveFile = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Read);
+        var json = saveFile.GetAsText();
+        
+        var jsonSerializerOptions = new JsonSerializerOptions();
+        jsonSerializerOptions.Converters.Add(new Vector2IJsonConverter());
+        jsonSerializerOptions.Converters.Add(new Vector3IJsonConverter());
+        
+        var regionInfo = JsonSerializer.Deserialize<RegionInfo>(json, jsonSerializerOptions);
+
+        foreach (var chunkInfo in regionInfo.Chunks)
+        {
+            Chunk chunk;
+            
+            if (!_loadedChunks.TryGetValue(chunkInfo.ChunkPosition, out chunk) &&
+                !_cachedChunks.TryGetValue(chunkInfo.ChunkPosition, out chunk))
+                continue;
+            
+            //chunk.SuppressUpdates = true;
+            
+            foreach (var blockInfo in chunkInfo.Blocks)
+                chunk.PlayerBlocks.Add(blockInfo.BlockCoordinates, blockInfo.BlockType);
+
+            chunk.UpdateChunk();
+            //chunk.SuppressUpdates = false;
+        }
+    }
+    
+    public void SaveChunks()
+    {
+        GD.Print("Saving chunks...");
+        var region = new RegionInfo();
+
+        foreach (var chunk in _cachedChunks.Values)
+        {
+            if (chunk.PlayerBlocks.Count > 0)
+            {
+                GD.Print($"Chunk X: {chunk.ChunkCoordinates.X} Y: {chunk.ChunkCoordinates.Y} contains: {chunk.PlayerBlocks.Count}");
+                var chunkInfo = new ChunkInfo() { ChunkPosition = chunk.ChunkCoordinates };
+                
+                foreach (var chunkPlayerBlock in chunk.PlayerBlocks)
+                    chunkInfo.Blocks.Add(new BlockInfo()
+                    {
+                        BlockCoordinates = chunkPlayerBlock.Key,
+                        BlockType = chunkPlayerBlock.Value
+                    });
+                region.Chunks.Add(chunkInfo);
+                //save.ChunkMaps.Add(chunk.ChunkCoordinates.ToMyVector2(), chunk.PlayerBlocks);
+            }
+        }
+
+        foreach (var chunk in _loadedChunks.Values)
+        {
+            if (chunk.PlayerBlocks.Count > 0)
+            {
+                GD.Print($"Chunk X: {chunk.ChunkCoordinates.X} Y: {chunk.ChunkCoordinates.Y} contains: {chunk.PlayerBlocks.Count}");
+                var chunkInfo = new ChunkInfo() { ChunkPosition = chunk.ChunkCoordinates };
+                
+                foreach (var chunkPlayerBlock in chunk.PlayerBlocks)
+                    chunkInfo.Blocks.Add(new BlockInfo()
+                    {
+                        BlockCoordinates = chunkPlayerBlock.Key,
+                        BlockType = chunkPlayerBlock.Value
+                    });
+                region.Chunks.Add(chunkInfo);
+                //save.ChunkMaps.Add(chunk.ChunkCoordinates.ToMyVector2(), chunk.PlayerBlocks);
+            }
+        }
+        
+        var jsonSerializerOptions = new JsonSerializerOptions();
+        jsonSerializerOptions.Converters.Add(new Vector2IJsonConverter());
+        jsonSerializerOptions.Converters.Add(new Vector3IJsonConverter());
+        
+        var json = JsonSerializer.Serialize(region, jsonSerializerOptions);
+        
+        using var saveFile = FileAccess.Open("user://savegame.save", FileAccess.ModeFlags.Write);
+        saveFile.StoreString(json);
+        
+        GD.Print(saveFile.GetPath());
+        GD.Print(saveFile.GetPathAbsolute());
+    }
 
     public void OnBlockPlaced(Vector3I blockCoordinates)
     {
@@ -320,6 +402,4 @@ public partial class ChunkManager : Node
         
         return chunks;
     }
-    
-    
 }

@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cv6k7y7yr4vja"]
+[gd_scene load_steps=15 format=3 uid="uid://cv6k7y7yr4vja"]
 
 [ext_resource type="PackedScene" uid="uid://b0mvlrs7ovmjd" path="res://Player.tscn" id="2_03owx"]
 [ext_resource type="Script" uid="uid://bx50tdlvbsxk8" path="res://addons/freecam_3D/freecam.gd" id="3_wkp8b"]
@@ -81,6 +81,22 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("5_5vvyt")
 
+[node name="Button" type="Button" parent="DebugInfo"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 77.0
+offset_bottom = 61.0
+text = "SAVE"
+
+[node name="Button2" type="Button" parent="DebugInfo"]
+layout_mode = 0
+offset_left = 87.0
+offset_top = 32.0
+offset_right = 139.0
+offset_bottom = 63.0
+text = "LOAD"
+
 [node name="LabelOutput" type="Label" parent="DebugInfo"]
 layout_mode = 0
 offset_right = 34.0
@@ -104,3 +120,5 @@ BlockMaterial = ExtResource("9_wkp8b")
 
 [connection signal="BlockPlaced" from="Player" to="ChunkManager" method="OnBlockPlaced"]
 [connection signal="MineBlock" from="Player" to="ChunkManager" method="OnBlockMined"]
+[connection signal="pressed" from="DebugInfo/Button" to="ChunkManager" method="SaveChunks"]
+[connection signal="pressed" from="DebugInfo/Button2" to="ChunkManager" method="LoadChunks"]

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Wancraft;
 
@@ -13,35 +14,40 @@ public partial class Chunk : Node3D
     [Export] private CollisionShape3D _collisionShape;
     [Export] private MeshInstance3D _meshInstance;
     
-    
     public bool SuppressFirstSceneEntryAnimation { get; set; }
+    public bool SuppressUpdates { get; set; }
     public bool Finalized { get; set; }
     public StandardMaterial3D Material { get; set; }
     
     public bool FlaggedForRemoval { get; set; }
     public DateTime RemoveAfter { get; set; } = DateTime.MaxValue;
     
+    private BlockType[,,] _originalBlockMap;
     private BlockType[,,] _blockMap;
     private ArrayMesh _chunkMesh;
     
-    private Vector2I _chunkCoordinates;
+    public Vector2I ChunkCoordinates { get; private set; }
     
     private Vector2 _textureAtlasSize = new Vector2(2, 2);
+    public Dictionary<Vector3I, BlockType> PlayerBlocks { get; private set; } = new();
     
     public override void _EnterTree()
     {
-        
         if (SuppressFirstSceneEntryAnimation)
-        {
-            //_meshInstance.Transparency = 0f;
             SuppressFirstSceneEntryAnimation = false;
-        }
         else
-        {
             _player.Play("fade_in");
-        }
         
         base._EnterTree();
+    }
+
+    public void UpdateChunk()
+    {
+        foreach (var (coords, blockType) in PlayerBlocks)
+            _blockMap[coords.X, coords.Y, coords.Z] = blockType;
+        
+        GenerateChunk(ChunkCoordinates);
+        FinalizeChunk();
     }
 
     public void RemoveBlock(Vector3I blockCoordinates)
@@ -49,8 +55,10 @@ public partial class Chunk : Node3D
         _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = BlockType.Air;
         
         // Regenerate mesh and collision shape
-        GenerateChunk(_chunkCoordinates);
+        GenerateChunk(ChunkCoordinates);
         FinalizeChunk();
+        
+        UpdatePlayerBlocks(blockCoordinates, BlockType.Air);
     }
 
     public void PlaceBlock(Vector3I blockCoordinates, BlockType blockType)
@@ -58,18 +66,45 @@ public partial class Chunk : Node3D
         _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = blockType;
         
         // Regenerate mesh and collision shape
-        GenerateChunk(_chunkCoordinates);
+        GenerateChunk(ChunkCoordinates);
         FinalizeChunk();
+        
+        UpdatePlayerBlocks(blockCoordinates, blockType);
+    }
+    
+    private void UpdatePlayerBlocks(Vector3I blockCoordinates, BlockType blockType)
+    {
+        if (_originalBlockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] == blockType)
+        {   
+            GD.Print($"Remove player block {blockCoordinates.X}, {blockCoordinates.Y}, {blockCoordinates.Z}");
+            PlayerBlocks.Remove(blockCoordinates);
+        }
+        else
+        {
+            GD.Print($"Add player block {blockCoordinates.X}, {blockCoordinates.Y}, {blockCoordinates.Z}");
+            //var myBlockCoordinates = blockCoordinates.ToMyVector3();
+            if (PlayerBlocks.TryAdd(blockCoordinates, blockType))
+                PlayerBlocks[blockCoordinates] = blockType;
+        }
     }
     
     public void GenerateChunk(Vector2I coordinates)
     {
         var timestamp = DateTime.Now;
-        
+
         if (_blockMap == null)
+        {
             _blockMap = WorldGenerator.GenerateBlockMap(coordinates.X * ChunkSize, coordinates.Y * ChunkSize, ChunkSize);
+            _originalBlockMap = (BlockType[,,])_blockMap.Clone();
+
+            if (PlayerBlocks.Count > 0)
+            {
+                foreach (var (blockCoordinates, playerBlock) in PlayerBlocks)
+                    _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = playerBlock;
+            }
+        }
         
-        _chunkCoordinates  = coordinates;
+        ChunkCoordinates  = coordinates;
         
         var surface = new SurfaceTool();
         surface.Begin(Mesh.PrimitiveType.Triangles);
