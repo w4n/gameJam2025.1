@@ -11,6 +11,7 @@ public partial class Player : CharacterBody3D
     [Export] public int Speed { get; set; } = 14;
     [Export] public int FallAcceleration { get; set; } = 75;
     [Export] public float JumpForce { get; set; } = 4.5f;
+    [Export] public Node3D BlockSelector { get; set; }
     
     private Vector3 _targetVelocity = Vector3.Zero;
     const float _sensitivity = 0.005f;
@@ -41,7 +42,7 @@ public partial class Player : CharacterBody3D
     
     public override void _Ready()
     {
-        _interactionController = new WorldInteractionController(this, RayCast, 1.0f);
+        _interactionController = new WorldInteractionController(this, RayCast, 1.0f, BlockSelector);
         
         Input.SetMouseMode(Input.MouseModeEnum.Captured);
     }
@@ -54,10 +55,8 @@ public partial class Player : CharacterBody3D
         {
             HeadPivot.RotateY(-mouseMotion.Relative.X * _sensitivity);
             Camera.RotateX(-mouseMotion.Relative.Y * _sensitivity);
-            //RayCast.RotateX(-mouseMotion.Relative.Y * _sensitivity);
             
-            Camera.Rotation = new Vector3(float.Clamp(Camera.Rotation.X, float.DegreesToRadians(-60), float.DegreesToRadians(60)), Camera.Rotation.Y, Camera.Rotation.Z);
-            //RayCast.Rotation = Camera.Rotation;
+            Camera.Rotation = new Vector3(float.Clamp(Camera.Rotation.X, float.DegreesToRadians(-80), float.DegreesToRadians(60)), Camera.Rotation.Y, Camera.Rotation.Z);
         }
     }
 

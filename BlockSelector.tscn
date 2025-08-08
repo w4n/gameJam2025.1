@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://dtnv2qhy06yt1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d48ma"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_n4sc3"]
+material = SubResource("StandardMaterial3D_d48ma")
+
+[node name="BlockSelector" type="Node3D"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.006, 0, 0, 0, 1.006, 0, 0, 0, 1.006, 0, 0, 0)
+transparency = 0.85
+mesh = SubResource("BoxMesh_n4sc3")

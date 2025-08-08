@@ -12,28 +12,38 @@ public class WorldInteractionController
     private Player _player;
     private RayCast3D _rayCast;
     private float _halvedBlockSize;
+    private Node3D _blockMarker;
+    private Vector3I _currentBlockMarkerCoordinates;
     
-    public WorldInteractionController(Player player, RayCast3D rayCast, float blockSize)
+    public WorldInteractionController(Player player, RayCast3D rayCast, float blockSize, Node3D blockMarker)
     {
         _rayCast = rayCast;
         _player = player;
         _halvedBlockSize = blockSize / 2;
+        _blockMarker = blockMarker;
     }
     
     public void CheckForWorldInteraction()
     {
+        if (_rayCast.IsColliding() && _rayCast.GetCollider() is StaticBody3D)
+        {
+            var newCoords = GetBlockCoordinates();
+
+            if (newCoords != _currentBlockMarkerCoordinates)
+            {
+                _blockMarker.GlobalPosition = GetBlockCoordinates();
+                _blockMarker.Visible = true;
+            }
+        }
+        else
+        {
+            _blockMarker.Visible = false;
+        }
+        
         if (Input.IsActionJustPressed("Mine") 
             && _rayCast.IsColliding()
             && _rayCast.GetCollider() is StaticBody3D)
         {
-            /*var collisionPoint = _rayCast.GetCollisionPoint();
-            var collisionNormal = _rayCast.GetCollisionNormal() * -_halvedBlockSize;
-
-            _blockCoordinates.X = (int)float.Floor(collisionPoint.X + collisionNormal.X + _halvedBlockSize);
-            _blockCoordinates.Y = (int)float.Floor(collisionPoint.Y + collisionNormal.Y + _halvedBlockSize);
-            _blockCoordinates.Z = (int)float.Floor(collisionPoint.Z + collisionNormal.Z + _halvedBlockSize);
-            */
-            
             _player.EmitSignal(Player.SignalName.MineBlock, GetBlockCoordinates());
         }
 
