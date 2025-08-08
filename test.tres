@@ -1,7 +1,0 @@
-[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://c7n68k8e83mah"]
-
-[ext_resource type="Texture2D" uid="uid://wqdyh8jxpcd4" path="res://TextureMap.tres" id="1_umafu"]
-
-[resource]
-albedo_texture = ExtResource("1_umafu")
-texture_filter = 0
