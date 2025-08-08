@@ -7,7 +7,8 @@
 [ext_resource type="PackedScene" uid="uid://de88cnm5ffu3b" path="res://WorldGenerator.tscn" id="6_c6i3y"]
 [ext_resource type="Script" uid="uid://b7016lur1vje5" path="res://ChunkManager.cs" id="7_c2ibq"]
 [ext_resource type="PackedScene" uid="uid://wvvck323spg8" path="res://Chunk.tscn" id="8_j4qnp"]
-[ext_resource type="Material" uid="uid://c7n68k8e83mah" path="res://test.tres" id="8_trn2v"]
+[ext_resource type="Texture2D" uid="uid://d0in6ktafrlq2" path="res://Crosshair.png" id="9_03owx"]
+[ext_resource type="Material" uid="uid://b6i2crw140ix1" path="res://BlockAtlasMaterial.tres" id="9_wkp8b"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1bvp3"]
 ground_color = Color(0, 0, 0, 1)
@@ -62,6 +63,17 @@ script = ExtResource("3_wkp8b")
 environment = SubResource("Environment_7mycd")
 camera_attributes = SubResource("CameraAttributesPractical_272bh")
 
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TextureRect" type="TextureRect" parent="CenterContainer"]
+layout_mode = 2
+texture = ExtResource("9_03owx")
+
 [node name="DebugInfo" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 0
@@ -71,8 +83,8 @@ script = ExtResource("5_5vvyt")
 
 [node name="LabelOutput" type="Label" parent="DebugInfo"]
 layout_mode = 0
-offset_right = 668.0
-offset_bottom = 341.0
+offset_right = 34.0
+offset_bottom = 23.0
 text = "DBG"
 
 [node name="GridContainer" type="GridContainer" parent="DebugInfo"]
@@ -87,9 +99,8 @@ TerrainNoise = SubResource("FastNoiseLite_272bh")
 script = ExtResource("7_c2ibq")
 Player = NodePath("../Player")
 generator = NodePath("../WorldGenerator")
-GenerationRadius = 9
 ChunkScene = ExtResource("8_j4qnp")
-BlockMaterial = ExtResource("8_trn2v")
+BlockMaterial = ExtResource("9_wkp8b")
 
 [connection signal="BlockPlaced" from="Player" to="ChunkManager" method="OnBlockPlaced"]
 [connection signal="MineBlock" from="Player" to="ChunkManager" method="OnBlockMined"]
