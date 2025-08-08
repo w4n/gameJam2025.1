@@ -28,7 +28,7 @@ public partial class Chunk : Node3D
     
     public Vector2I ChunkCoordinates { get; private set; }
     
-    private Vector2 _textureAtlasSize = new Vector2(2, 2);
+    private Vector2 _textureAtlasSize = new Vector2(9, 7);
     public Dictionary<Vector3I, BlockType> PlayerBlocks { get; private set; } = new();
     
     public override void _EnterTree()
@@ -155,6 +155,11 @@ public partial class Chunk : Node3D
         
         return _blockMap[x, y, z] != BlockType.Air;
     }
+
+    private Dictionary<QuadFace, Vector2> GetBlockUVs(int x, int y, int z)
+    {
+        return BlockTextureAtlas.Instance[_blockMap[x, y, z]];
+    }
     
     /*
      *       4 +------------+ 5
@@ -184,38 +189,38 @@ public partial class Chunk : Node3D
             new( half + x, -half + y, -half + z),  // 6: Bottom-right-back
             new(-half + x, -half + y, -half + z),  // 7: Bottom-left-back
         };
-
         
+        var blockUVs = GetBlockUVs(x, y, z);
         
         // block above?
         if (!IsBlockAt(x, y + 1, z))
             // Add top face
-            AddQuad(surface, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, new Vector2(0f, 0f));
+            AddQuad(surface, vertices[4], vertices[5], vertices[1], vertices[0], Vector3.Up, blockUVs[QuadFace.Top]);
         
         // block below?
         if (!IsBlockAt(x, y - 1, z))
             // Add bottom face
-            AddQuad(surface, vertices[3], vertices[2], vertices[6], vertices[7], Vector3.Down, new Vector2(0f, 1f));
+            AddQuad(surface, vertices[3], vertices[2], vertices[6], vertices[7], Vector3.Down, blockUVs[QuadFace.Bottom]);
         
         // block left?
         if (!IsBlockAt(x - 1, y, z))
             // Add left face
-            AddQuad(surface, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, new Vector2(1f, 0f));
+            AddQuad(surface, vertices[4], vertices[0], vertices[3], vertices[7], Vector3.Left, blockUVs[QuadFace.Left]);
         
         // block right?
         if (!IsBlockAt(x + 1, y, z))
             // Add left face
-            AddQuad(surface, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, new Vector2(1f, 0f));
+            AddQuad(surface, vertices[1], vertices[5], vertices[6], vertices[2], Vector3.Right, blockUVs[QuadFace.Right]);
         
         // block in front?
         if (!IsBlockAt(x, y, z + 1))
             // Add front face
-            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, new Vector2(1f, 0f));
+            AddQuad(surface, vertices[0], vertices[1], vertices[2], vertices[3], Vector3.Back, blockUVs[QuadFace.Front]);
         
         // block behind?
         if (!IsBlockAt(x, y, z - 1))
             // Add back face
-            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, new Vector2(1f, 0f));
+            AddQuad(surface, vertices[5], vertices[4], vertices[7], vertices[6], Vector3.Forward, blockUVs[QuadFace.Back]);
         
         //surface.AddTriangleFan([vertices[0], vertices[1], vertices[2]], );
     }
