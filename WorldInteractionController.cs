@@ -5,8 +5,6 @@ namespace Wancraft;
 
 public class WorldInteractionController
 {
-    private IntPtr _previouslyHitObjectReference;
-    private Vector3 _previousNormal;
     private Vector3I _blockCoordinates;
     
     private Player _player;
@@ -14,6 +12,15 @@ public class WorldInteractionController
     private float _halvedBlockSize;
     private Node3D _blockMarker;
     private Vector3I _currentBlockMarkerCoordinates;
+    
+    private InteractionMode _placementMode;
+
+    private enum InteractionMode
+    {
+        None,
+        Mine,
+        Place
+    }
     
     public WorldInteractionController(Player player, RayCast3D rayCast, float blockSize, Node3D blockMarker)
     {
@@ -25,13 +32,21 @@ public class WorldInteractionController
     
     public void CheckForWorldInteraction()
     {
+        CheckToolbarInteraction();
+        
         if (_rayCast.IsColliding() && _rayCast.GetCollider() is StaticBody3D)
         {
-            var newCoords = GetBlockCoordinates();
+            Vector3I newCoords;
+            
+            if (_placementMode == InteractionMode.Place)
+                newCoords = GetBlockCoordinates(adjacentBlock: true);
+            else
+                newCoords = GetBlockCoordinates();
 
             if (newCoords != _currentBlockMarkerCoordinates)
             {
-                _blockMarker.GlobalPosition = GetBlockCoordinates();
+                _currentBlockMarkerCoordinates = newCoords;
+                _blockMarker.GlobalPosition = _currentBlockMarkerCoordinates;
                 _blockMarker.Visible = true;
             }
         }
@@ -44,15 +59,68 @@ public class WorldInteractionController
             && _rayCast.IsColliding()
             && _rayCast.GetCollider() is StaticBody3D)
         {
-            _player.EmitSignal(Player.SignalName.MineBlock, GetBlockCoordinates());
+            if (_placementMode == InteractionMode.Place)
+                _player.EmitSignal(Player.SignalName.BlockPlaced, GetBlockCoordinates(true));
+            
+            if (_placementMode == InteractionMode.Mine)
+                _player.EmitSignal(Player.SignalName.MineBlock, GetBlockCoordinates());
+        }
+    }
+
+    private void CheckToolbarInteraction()
+    {
+        if (Input.IsActionJustPressed("Hotbar1"))
+            UpdateInteractionMode(PlayerInventory.Instance.SelectHotbarSlot(1));
+        
+        if (Input.IsActionJustPressed("Hotbar2"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(2));
+        
+        if (Input.IsActionJustPressed("Hotbar3"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(3));
+        
+        if (Input.IsActionJustPressed("Hotbar4"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(4));
+        
+        if (Input.IsActionJustPressed("Hotbar5"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(5));
+        
+        if (Input.IsActionJustPressed("Hotbar6"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(6));
+        
+        if (Input.IsActionJustPressed("Hotbar7"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(7));
+        
+        if (Input.IsActionJustPressed("Hotbar8"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(8));
+        
+        if (Input.IsActionJustPressed("Hotbar9"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(9));
+        
+        if (Input.IsActionJustPressed("Hotbar0"))
+            UpdateInteractionMode( PlayerInventory.Instance.SelectHotbarSlot(0));
+    }
+    
+    private void UpdateInteractionMode(InventoryStack stack)
+    {
+        if (stack == null)
+        {
+            _placementMode = InteractionMode.None;
+            return;
         }
 
-        if (Input.IsActionJustPressed("PlaceBlock")
-            && _rayCast.IsColliding()
-            && _rayCast.GetCollider() is StaticBody3D)
+        if (stack.ToolType == ToolType.PickAxe)
         {
-            _player.EmitSignal(Player.SignalName.BlockPlaced, GetBlockCoordinates(true));
+            _placementMode = InteractionMode.Mine;
+            return;
         }
+
+        if (stack.Count > 0 && stack.BlockType != BlockType.Air)
+        {
+            _placementMode = InteractionMode.Place;
+            return;
+        }
+        
+        _placementMode = InteractionMode.None;
     }
 
     private Vector3I GetBlockCoordinates(bool adjacentBlock = false)

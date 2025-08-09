@@ -178,6 +178,9 @@ public partial class ChunkManager : Node
 
     public void OnBlockPlaced(Vector3I blockCoordinates)
     {
+        if (!PlayerInventory.Instance.TryGetBlock(out var block))
+            return;
+        
         var chunkCoordinates = GetChunkCoordinates(blockCoordinates);
         var localizedBlockCoordinates = GetLocalizedBlockCoordinates(chunkCoordinates, blockCoordinates);
         
@@ -188,7 +191,7 @@ public partial class ChunkManager : Node
 #endif
         
         if (_loadedChunks.TryGetValue(chunkCoordinates, out var chunk))
-            chunk.PlaceBlock(localizedBlockCoordinates, BlockType.Dirt);
+            chunk.PlaceBlock(localizedBlockCoordinates, block);
     }
     
     public void OnBlockMined(Vector3I blockCoordinates)
@@ -385,7 +388,7 @@ public partial class ChunkManager : Node
         
         if (_loadedChunks.TryAdd(chunkPosition, chunk))
         {
-            GD.Print($"Generated new chunk at: {chunkPosition}");
+            //GD.Print($"Generated new chunk at: {chunkPosition}");
         }
         else
         {

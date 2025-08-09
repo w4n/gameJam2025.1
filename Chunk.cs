@@ -52,6 +52,9 @@ public partial class Chunk : Node3D
 
     public void RemoveBlock(Vector3I blockCoordinates)
     {
+        if (!PlayerInventory.Instance.TryAddBlock(_blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z]))
+            return;
+        
         _blockMap[blockCoordinates.X, blockCoordinates.Y, blockCoordinates.Z] = BlockType.Air;
         
         // Regenerate mesh and collision shape

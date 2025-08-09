@@ -1,7 +1,6 @@
-[gd_scene load_steps=5 format=3 uid="uid://b0mvlrs7ovmjd"]
+[gd_scene load_steps=4 format=3 uid="uid://b0mvlrs7ovmjd"]
 
 [ext_resource type="Script" uid="uid://bf62ceucnh57s" path="res://Player.cs" id="1_xhfnw"]
-[ext_resource type="PackedScene" uid="uid://dtnv2qhy06yt1" path="res://BlockSelector.tscn" id="2_kpjcp"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_kpjcp"]
 radius = 0.4
@@ -13,7 +12,7 @@ height = 1.8
 
 [node name="Player" type="CharacterBody3D" node_paths=PackedStringArray("BlockSelector", "HeadPivot", "Camera", "RayCast")]
 script = ExtResource("1_xhfnw")
-BlockSelector = NodePath("BlockSelector")
+BlockSelector = NodePath("")
 HeadPivot = NodePath("Pivot")
 Camera = NodePath("Pivot/Camera3D")
 RayCast = NodePath("Pivot/Camera3D/RayCast3D")
@@ -32,5 +31,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
 [node name="RayCast3D" type="RayCast3D" parent="Pivot/Camera3D"]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0)
 target_position = Vector3(0, -4.5, 0)
-
-[node name="BlockSelector" parent="." instance=ExtResource("2_kpjcp")]

@@ -1,14 +1,16 @@
-[gd_scene load_steps=15 format=3 uid="uid://cv6k7y7yr4vja"]
+[gd_scene load_steps=22 format=3 uid="uid://cv6k7y7yr4vja"]
 
 [ext_resource type="PackedScene" uid="uid://b0mvlrs7ovmjd" path="res://Player.tscn" id="2_03owx"]
 [ext_resource type="Script" uid="uid://bx50tdlvbsxk8" path="res://addons/freecam_3D/freecam.gd" id="3_wkp8b"]
 [ext_resource type="PackedScene" uid="uid://bs2jm62cmkbrk" path="res://addons/instant-realistic-light/light_scene.tscn" id="4_20pc6"]
+[ext_resource type="PackedScene" uid="uid://cfd17wd05rec6" path="res://HotBarItem.tscn" id="4_wkp8b"]
 [ext_resource type="Script" uid="uid://bff6wo0ugfd52" path="res://DebugInfo.cs" id="5_5vvyt"]
 [ext_resource type="PackedScene" uid="uid://de88cnm5ffu3b" path="res://WorldGenerator.tscn" id="6_c6i3y"]
 [ext_resource type="Script" uid="uid://b7016lur1vje5" path="res://ChunkManager.cs" id="7_c2ibq"]
 [ext_resource type="PackedScene" uid="uid://wvvck323spg8" path="res://Chunk.tscn" id="8_j4qnp"]
 [ext_resource type="Texture2D" uid="uid://d0in6ktafrlq2" path="res://Crosshair.png" id="9_03owx"]
 [ext_resource type="Material" uid="uid://b6i2crw140ix1" path="res://BlockAtlasMaterial.tres" id="9_wkp8b"]
+[ext_resource type="PackedScene" uid="uid://dtnv2qhy06yt1" path="res://BlockSelector.tscn" id="11_20pc6"]
 
 [sub_resource type="PhysicalSkyMaterial" id="PhysicalSkyMaterial_1bvp3"]
 ground_color = Color(0, 0, 0, 1)
@@ -45,16 +47,45 @@ dof_blur_far_distance = 1.44
 dof_blur_near_distance = 0.01
 auto_exposure_min_sensitivity = 8.01
 
-[sub_resource type="FastNoiseLite" id="FastNoiseLite_272bh"]
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_03owx"]
+noise_type = 0
+seed = 1337
+frequency = 0.002
+fractal_octaves = 2
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_5vvyt"]
+noise_type = 0
+seed = 1338
+metadata/_preview_in_3d_space_ = true
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_c6i3y"]
 noise_type = 3
-seed = 84758927
-frequency = 0.0065
-fractal_octaves = 6
+seed = 1339
+fractal_octaves = 4
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_wkp8b"]
+noise_type = 0
+seed = 1340
+frequency = 0.02
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_20pc6"]
+noise_type = 0
+seed = 1341
+frequency = 0.005
+fractal_type = 2
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_c2ibq"]
+noise_type = 2
+seed = 1342
+frequency = 0.05
+cellular_return_type = 6
+metadata/_preview_in_3d_space_ = true
 
 [node name="Main" type="Node3D"]
 
-[node name="Player" parent="." instance=ExtResource("2_03owx")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 100, 2)
+[node name="Player" parent="." node_paths=PackedStringArray("BlockSelector") instance=ExtResource("2_03owx")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 128, 2)
+BlockSelector = NodePath("../BlockSelector")
 
 [node name="Freecam3D" type="Camera3D" parent="."]
 script = ExtResource("3_wkp8b")
@@ -62,6 +93,68 @@ script = ExtResource("3_wkp8b")
 [node name="WorldEnvironment" parent="." instance=ExtResource("4_20pc6")]
 environment = SubResource("Environment_7mycd")
 camera_attributes = SubResource("CameraAttributesPractical_272bh")
+
+[node name="HotbarCenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -267.0
+grow_horizontal = 2
+grow_vertical = 0
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HotbarMarginContainer" type="MarginContainer" parent="HotbarCenterContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Hotbar" type="GridContainer" parent="HotbarCenterContainer/HotbarMarginContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 96
+columns = 10
+
+[node name="HotbarItem1" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 1
+
+[node name="HotbarItem2" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 2
+
+[node name="HotbarItem3" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 3
+
+[node name="HotbarItem4" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 4
+
+[node name="HotbarItem5" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 5
+
+[node name="HotbarItem6" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 6
+
+[node name="HotbarItem7" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 7
+
+[node name="HotbarItem8" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 8
+
+[node name="HotbarItem9" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
+SlotNumber = 9
+
+[node name="HotbarItem0" parent="HotbarCenterContainer/HotbarMarginContainer/Hotbar" instance=ExtResource("4_wkp8b")]
+layout_mode = 2
 
 [node name="CenterContainer" type="CenterContainer" parent="."]
 anchors_preset = 15
@@ -109,7 +202,12 @@ offset_right = 40.0
 offset_bottom = 40.0
 
 [node name="WorldGenerator" parent="." instance=ExtResource("6_c6i3y")]
-TerrainNoise = SubResource("FastNoiseLite_272bh")
+BiomeNoise = SubResource("FastNoiseLite_03owx")
+CaveNoise = SubResource("FastNoiseLite_5vvyt")
+ContinentNoise = SubResource("FastNoiseLite_c6i3y")
+DetailNoise = SubResource("FastNoiseLite_wkp8b")
+MountainNoise = SubResource("FastNoiseLite_20pc6")
+OreNoise = SubResource("FastNoiseLite_c2ibq")
 
 [node name="ChunkManager" type="Node" parent="." node_paths=PackedStringArray("Player", "generator")]
 script = ExtResource("7_c2ibq")
@@ -117,6 +215,8 @@ Player = NodePath("../Player")
 generator = NodePath("../WorldGenerator")
 ChunkScene = ExtResource("8_j4qnp")
 BlockMaterial = ExtResource("9_wkp8b")
+
+[node name="BlockSelector" parent="." instance=ExtResource("11_20pc6")]
 
 [connection signal="BlockPlaced" from="Player" to="ChunkManager" method="OnBlockPlaced"]
 [connection signal="MineBlock" from="Player" to="ChunkManager" method="OnBlockMined"]
