@@ -8,5 +8,12 @@ public enum BlockType
     Air,
     Grass,
     Dirt,
-    Rock
+    Rock,
+    Sand,
+    Water,
+    IronOre,
+    CoalOre,
+    GoldOre,
+    Wood,
+    Leaves,
 }
